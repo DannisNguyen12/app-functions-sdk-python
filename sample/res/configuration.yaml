@@ -1,23 +1,67 @@
 Writable:
-  LogLevel: INFO
-  Telemetry:
-    Interval: "30s"
+  LogLevel: "INFO"
+  InsecureSecrets:
+    redisdb:
+      SecretName: redisdb
+      SecretData:
+        username: ''
+        password: ''
+    secure-messagebus:
+      SecretName: secure-messagebus
+      SecretData:
+        username: ''
+        password: ''
+
+Registry:
+  Host: localhost
+  Port: 8500
+  Type: consul
+
+Database:
+  Type: redis
+  Host: localhost
+  Port: 6379
+  Timeout: 5000
+
+MessageBus:
+  Protocol: redis
+  Host: localhost
+  Port: 6379
+  Type: redis
+  AuthMode: none
+  SecretName: secure-messagebus
+  Optional:
+    ClientId: app-service-virtual-devices-http
+    SkipCertVerify: true
 
 Service:
   Host: localhost
-  Port: 59782  # Different port for HTTP version
-  StartupMsg: "Ready-to-Use App Service (HTTP) with Prebuilt Functions"
+  Port: 59788
+  ServerBindAddr: ""
+  RequestTimeout: 5000
+  HealthCheckInterval: 10s
+  RequestReadTimeout: 5s
+  RequestWriteTimeout: 5s
+  MaxRequestSize: 0
+  EnableCORS: false
 
-# Disable MessageBus for HTTP-only testing
-MessageBus:
-  Disabled: true
-  Optional:
-    ClientId: app-service-ready-http
-    
-# Use HTTP trigger for testing
+ExternalMQTT:
+  Enabled: false
+
 Trigger:
-  Type: http
+  Type: "http"
 
-# Application-specific settings
+# Device filter configuration
+DeviceNames: 
+  - "Random-Boolean-Device"
+  - "Random-Float-Device"
+  - "Random-Integer-Device"
+  - "LabDoorSensor"
+  - "LabCamera"
+  - "LabSmokeSensor"
+  - "LabFallSensor"
+
 ApplicationSettings:
-  DeviceNames: "Random-Boolean-Device, Random-Float-Device, Random-Integer-Device"
+  ResourceNames: "Temperature,Humidity,Light,Motion,Sound,Camera"
+  DeviceNames: "Random-Boolean-Device,Random-Float-Device,Random-Integer-Device"
+  Simulate: false
