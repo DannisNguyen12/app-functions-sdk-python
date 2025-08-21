@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Train a simple IsolationForest on numeric features extracted from the sample JSONL.
+Train a simple IsolationForest on numeric features extracted from the extract JSONL.
 """
 import argparse
 import json

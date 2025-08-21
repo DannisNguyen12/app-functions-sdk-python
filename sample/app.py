@@ -9,6 +9,8 @@ import requests
 import json
 import time
 from datetime import datetime
+import sys
+import joblib
 
 
 def load_simple_config(path: str):
@@ -100,6 +102,50 @@ APP_SERVICE_URL = f"http://{APP_SERVICE_HOST}:{APP_SERVICE_PORT}/api/v3/trigger"
 last_event_id = None
 poll_interval = 2  # seconds
 
+# Attempt to load an optional model from AITest (if present)
+MODEL = None
+MODEL_KEYS = None
+extract_numeric_features = None
+vectorize_features = None
+try:
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    if repo_root not in sys.path:
+        sys.path.insert(0, repo_root)
+    # import feature helpers if available
+    try:
+        from AITest.preprocess.feature_utils import extract_numeric_features, vectorize_features
+    except Exception:
+        extract_numeric_features = None
+        vectorize_features = None
+    model_path = os.path.join(repo_root, 'AITest', 'models', 'if_model.joblib')
+    if os.path.exists(model_path):
+        try:
+            data = joblib.load(model_path)
+            MODEL = data.get('model')
+            MODEL_KEYS = data.get('keys')
+            print(f"🔬 Loaded model from {model_path}; keys={MODEL_KEYS}")
+        except Exception as e:
+            print("🔬 Failed to load model:", e)
+    else:
+        # not an error; model is optional
+        pass
+except Exception:
+    # any import failures should not stop the forwarder
+    MODEL = None
+    MODEL_KEYS = None
+    extract_numeric_features = None
+    vectorize_features = None
+
+# Diagnostic prints so operator can see why inference may not run
+try:
+    model_path = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')), 'AITest', 'models', 'if_model.joblib')
+    print('🔍 Model diagnostic: path=', model_path, 'exists=', os.path.exists(model_path))
+    print('🔍 MODEL loaded=', bool(MODEL), ' MODEL_KEYS=', MODEL_KEYS is not None)
+    print('🔍 extract_numeric_features available=', callable(extract_numeric_features))
+    print('🔍 vectorize_features available=', callable(vectorize_features))
+except Exception:
+    pass
+
 def get_latest_events(limit=10):
     """Get latest events from EdgeX Core Data"""
     try:
@@ -124,6 +170,23 @@ def forward_event_to_app_service(event):
             print(json.dumps(event, indent=2, default=str))
         except Exception:
             print(repr(event))
+        # If a model is loaded and feature helpers are available, run inference
+        try:
+            if MODEL and extract_numeric_features and vectorize_features and MODEL_KEYS:
+                f = extract_numeric_features({'value': event.get('readings')})
+                vec = vectorize_features(f, MODEL_KEYS)
+                try:
+                    score = MODEL.decision_function([vec])[0]
+                except Exception:
+                    score = None
+                try:
+                    pred = MODEL.predict([vec])[0]
+                    label = 'normal' if int(pred) == 1 else 'abnormal'
+                except Exception:
+                    label = 'unknown'
+                print(f"🔎 Model -> score={score} label={label}")
+        except Exception as e:
+            print('🔎 Inference error', e)
         return True
     except Exception as e:
         print(f"❌ Error printing event: {e}")
