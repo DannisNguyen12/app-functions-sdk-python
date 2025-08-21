@@ -38,7 +38,7 @@ python AITest/extract/extract_sample.py --out AITest/data/redis_sample.jsonl --c
 3. Run the baseline trainer:
 
 ```bash
-python train_isolation_forest.py --input /Users/dannynguyen/Downloads/TestEdgeX/app-functions-sdk-python/AITest/data/redis_sample.jsonl --out /Users/dannynguyen/Downloads/TestEdgeX/app-functions-sdk-python/AITest/models/if_model.joblib
+python train_isolation_forest.py --input ../data/redis_sample.jsonl --out ../models/if_model.joblib
 ```
 
 4. Run the inference script against live data (prints scores):

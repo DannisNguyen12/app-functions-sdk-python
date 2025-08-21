@@ -138,7 +138,7 @@ if __name__ == '__main__':
     p = argparse.ArgumentParser()
     p.add_argument('--host', default='localhost')
     p.add_argument('--port', default=6379, type=int)
-    p.add_argument('--count', default=100, type=int, help='Number of samples to collect')
+    p.add_argument('--count', default=1000 , type=int, help='Number of samples to collect')
     p.add_argument('--out', dest='out_path', default='AITest/data/redis_sample.jsonl')
     p.add_argument('--pattern', default=None, help='Optional key pattern (e.g., edgex* )')
     p.add_argument('--list-limit', default=10, type=int, help='Max elements to read from lists')

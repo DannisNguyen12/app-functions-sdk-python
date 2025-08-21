@@ -14,7 +14,12 @@ if repo_root not in sys.path:
 from sklearn.ensemble import IsolationForest
 import joblib
 from collections import Counter
-from AITest.preprocess.feature_utils import extract_numeric_features, vectorize_features
+from AITest.preprocess.feature_utils import (
+    extract_numeric_features,
+    vectorize_features,
+    build_keys_from_samples,
+    vectorize_with_cats,
+)
 
 
 def load_samples(path):
@@ -26,16 +31,11 @@ def load_samples(path):
 
 
 def collect_feature_keys(samples):
-    keys = Counter()
-    feats = []
-    for s in samples:
-        f = extract_numeric_features(s)
-        feats.append(f)
-        for k in f.keys():
-            keys[k] += 1
-    # choose top N keys
-    common = [k for k, _ in keys.most_common(50)]
-    return common, feats
+    # backward compatible wrapper: return features extracted for each sample
+    feats = [extract_numeric_features(s) for s in samples]
+    # use build_keys_from_samples to derive stable keys and category map
+    keys, cat_map = build_keys_from_samples(samples)
+    return keys, cat_map, feats
 
 
 def build_matrix(feats, keys):
@@ -47,8 +47,12 @@ def build_matrix(feats, keys):
 
 def train_if(input_path, out_path):
     samples = load_samples(input_path)
-    keys, feats = collect_feature_keys(samples)
-    X = build_matrix(feats, keys)
+    keys, cat_map, feats = collect_feature_keys(samples)
+    # build matrix using categorical-aware vectorizer
+    mat = []
+    for f in feats:
+        mat.append(vectorize_with_cats(f, keys, cat_map))
+    X = mat
 
     if not X:
         print('No numeric features found, aborting')
@@ -58,7 +62,7 @@ def train_if(input_path, out_path):
     model.fit(X)
 
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
-    joblib.dump({'model': model, 'keys': keys}, out_path)
+    joblib.dump({'model': model, 'keys': keys, 'cat_map': cat_map}, out_path)
     print(f'Saved model to {out_path}')
 
 
