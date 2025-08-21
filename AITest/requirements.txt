@@ -1,0 +1,5 @@
+redis
+pandas
+scikit-learn
+joblib
+requests
